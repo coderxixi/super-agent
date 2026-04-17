@@ -4,6 +4,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createMockModel } from './mock-model';
 import { createInterface } from 'node:readline';
 import { weatherTool, calculatorTool } from './tools';
+import { agentLoop } from './agent-loop.js';
 //工具列表
 const tools = { get_weather: weatherTool, calculator: calculatorTool };
 //创建模型
@@ -22,9 +23,13 @@ const rl = createInterface({
 });
 
 const messages: ModelMessage[] = [];
+const SYSTEM = `你是 Super Agent，一个有工具调用能力的 AI 助手。
+需要查询信息时，主动使用工具，不要编造数据。
+回答要简洁直接。`;
 
 
-function ask() {
+//方案-使用SDK
+function ask1() {
   rl.question('\nYou: ', async (input) => {
     const trimmed = input.trim();
     if (!trimmed || trimmed === 'exit') {
@@ -38,9 +43,7 @@ function ask() {
     const result = streamText({
       tools,
       model,
-      system: `你是 Super Agent，一个专注于软件开发的 AI 助手。
-你说话简洁直接，喜欢用代码示例来解释问题。
-如果用户的问题不够清晰，你会反问而不是瞎猜。`,
+      system: SYSTEM,
       messages,
       stopWhen: stepCountIs(5), // 最多跑 5 步
     });
@@ -73,6 +76,27 @@ function ask() {
   });
 }
 
-console.log('Super Agent v0.1 (type "exit" to quit)\n');
+
+
+//方案二：手动循环
+function ask() {
+  rl.question('\nYou: ', async (input) => {
+    const trimmed = input.trim();
+    if (!trimmed || trimmed === 'exit') {
+      console.log('Bye!');
+      rl.close();
+      return;
+    }
+
+    messages.push({ role: 'user', content: trimmed });
+
+    await agentLoop(model, tools, messages, SYSTEM);
+
+    ask();
+  });
+}
+
+console.log('Super Agent v0.2 — Agent Loop (type "exit" to quit)\n');
 ask();
+
 
