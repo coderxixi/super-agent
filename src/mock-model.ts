@@ -1,3 +1,11 @@
+/*
+ * @Author: coderxixi 976344695@qq.com
+ * @Date: 2026-04-16 09:58:50
+ * @LastEditors: coderxixi 976344695@qq.com
+ * @LastEditTime: 2026-05-03 16:16:57
+ * @FilePath: /super-agent/src/mock-model.ts
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 const RESPONSES: Record<string, string> = {
   default: '你好！我是模拟模型。填了 DASHSCOPE_API_KEY 后会自动切换到真实的 Qwen。',
   greeting: '你好！虽然是模拟的，但流式输出的效果和真实 API 一致 :)',
