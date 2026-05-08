@@ -1,5 +1,5 @@
 import { jsonSchema } from 'ai';
-
+import type { MCPClient, MockMCPClient } from './mcp-client.js';
 export interface ToolDefinition {
   name: string;// 工具名字，Agent 用这个名字来调用
   description: string;// 给模型看的说明书，"这个工具能干嘛"
@@ -18,12 +18,56 @@ export class ToolRegistry {
   private exclusiveLock = false;
   private concurrentCount = 0;
   private waitQueue: Array<() => void> = [];
+  private mcpClients: Array<MCPClient | MockMCPClient> = [];
   // 注册工具
   register(...tools: ToolDefinition[]): void {
     for (const tool of tools) {
       this.tools.set(tool.name, tool);
     }
   }
+  async registerMCPServer(
+    serverName: string,
+    client: MCPClient | MockMCPClient,
+  ): Promise<string[]> {
+    await client.connect();
+    this.mcpClients.push(client);
+
+    const tools = await client.listTools();
+    const registered: string[] = [];
+
+    for (const tool of tools) {
+      const prefixedName = `mcp__${serverName}__${tool.name}`;
+
+      if (this.tools.has(prefixedName)) continue;
+
+      const toolClient = client;
+      const originalName = tool.name;
+
+      this.register({
+        name: prefixedName,
+        description: `[MCP:${serverName}] ${tool.description}`,
+        parameters: tool.inputSchema as Record<string, unknown>,
+        isConcurrencySafe: true,
+        isReadOnly: true,
+        maxResultChars: 3000,
+        execute: async (input: any) => {
+          return toolClient.callTool(originalName, input);
+        },
+      });
+
+      registered.push(prefixedName);
+    }
+
+    return registered;
+  }
+
+  async closeAllMCP(): Promise<void> {
+    for (const client of this.mcpClients) {
+      await client.close();
+    }
+    this.mcpClients = [];
+  }
+
   // 按名字查找
   get(name: string): ToolDefinition | undefined {
     return this.tools.get(name);
