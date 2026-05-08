@@ -1,13 +1,13 @@
 import { jsonSchema } from 'ai';
 
 export interface ToolDefinition {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-  isConcurrencySafe?: boolean;
-  isReadOnly?: boolean;
-  maxResultChars?: number;
-  execute: (input: any) => Promise<unknown>;
+  name: string;// 工具名字，Agent 用这个名字来调用
+  description: string;// 给模型看的说明书，"这个工具能干嘛"
+  parameters: Record<string, unknown>;// 参数规则，比如"读文件需要传 path"
+  isConcurrencySafe?: boolean;// 能不能和其他工具一起跑（并发安全）
+  isReadOnly?: boolean;  // 会不会改东西（只读还是读写）
+  maxResultChars?: number; // 返回结果最多多长
+  execute: (input: any) => Promise<unknown>;// 真正干活的方法
 }
 
 const DEFAULT_MAX_RESULT_CHARS = 3000;
@@ -18,17 +18,17 @@ export class ToolRegistry {
   private exclusiveLock = false;
   private concurrentCount = 0;
   private waitQueue: Array<() => void> = [];
-
+  // 注册工具
   register(...tools: ToolDefinition[]): void {
     for (const tool of tools) {
       this.tools.set(tool.name, tool);
     }
   }
-
+  // 按名字查找
   get(name: string): ToolDefinition | undefined {
     return this.tools.get(name);
   }
-
+  // 获取所有工具
   getAll(): ToolDefinition[] {
     return Array.from(this.tools.values());
   }
@@ -61,7 +61,7 @@ export class ToolRegistry {
     const waiting = this.waitQueue.splice(0);
     for (const resolve of waiting) resolve();
   }
-
+  // 转成 AI SDK 能吃的格式
   toAISDKFormat(): Record<string, any> {
     const result: Record<string, any> = {};
     for (const [name, tool] of this.tools) {

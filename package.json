@@ -1,9 +1,9 @@
 {
   "name": "super-agent",
-  "version": "0.4.1",
+  "version": "0.4.3",
   "type": "module",
   "scripts": {
-    "start": "tsx src/index.ts"
+    "dev": "tsx src/index.ts"
   },
   "dependencies": {
     "ai": "5.0.98",
